@@ -95,42 +95,57 @@ plt.show()
 #Now do a for loop to get all the images of the toy (in my computer) and eventually 
 #of the real dataset (on the HPC) to the right size. 
 #%%
+#play arround with vectorising the image: 
+
+a = np.asarray(new_im)# a is readonly
+l,b,c = a.shape
+a_r = a.reshape(l*b*c,)
+ 
+i = Image.fromarray(a)
+i.show()
+plt.imshow(a)
+plt.show()
+print(a_r.shape)
+
+#%%
 import pandas as pd
 toy_training=pd.read_csv((path+"training_toy.csv"))
 toy_training.head()
 
-
 #%%
+#This now works:
 import os
 #this step is for KNN or SVM models.
 #reads, resizes and extracts images into a numpy array and get the corresponding labels:
 def resize_extract_images(path, label_df, desired_size):
     all_images_as_array=[]
-    label=[]
-    #TODO:here create if statement!id filename in df...might be better below..
+    label=[]    
     for filename in os.listdir(path):
-        im = Image.open(path+filename)
-        old_size = im.size  # old_size[0] is in (width, height) format
-        ratio = float(desired_size)/max(old_size)
-        new_size = tuple([int(x*ratio) for x in old_size])
-# use resize() method to resize the input image
-        resized_im = im.resize(new_size, Image.ANTIALIAS)
-# create a new image and paste the resized on it
-        new_im = Image.new("RGB", (desired_size, desired_size))
-        new_im.paste(resized_im, ((desired_size-new_size[0])//2,
-                    (desired_size-new_size[1])//2))       
-#create np_array from new image:  
-        #TODO: here there is a problem with the dimensions of the vectorised image find it! 
-        np_array = np.asarray(new_im)
-        l,b,c = np_array.shape
-        np_array = np_array.reshape(l*b*c,)
-        all_images_as_array.append(np_array)
         for index, row in label_df.iterrows():
             if filename==row["0"]:
+                # 1-Feed the label vector:
                 if row["infect_status"]==1:
                     label.append(1)
                 else:
                     label.append(0)
+                # 2- read the image:
+                im = Image.open(path+filename)
+                old_size = im.size  # old_size[0] is in (width, height) format
+                ratio = float(desired_size)/max(old_size)
+                new_size = tuple([int(x*ratio) for x in old_size])
+# use resize() method to resize the input image
+                resized_im = im.resize(new_size, Image.ANTIALIAS)
+# create a new image and paste the resized on it
+                new_im = Image.new("RGB", (desired_size, desired_size))
+                new_im.paste(resized_im, ((desired_size-new_size[0])//2,
+                    (desired_size-new_size[1])//2))       
+#create np_array from new image:  
+        #dimensions are fine! 
+                np_array = np.asarray(new_im)
+                l,b,c = np_array.shape
+                np_array = np_array.reshape(l*b*c,)
+                all_images_as_array.append(np_array)
+        
          
 
     return np.array(all_images_as_array), np.array(label)
@@ -142,17 +157,47 @@ print('X_train set : ',X_train)
 print('y_train set : ',y_train)
 print("The shape of the X_train set is: {} \n and the shape of the y_train is: {}.".format(X_train.shape, y_train.shape))
 
-#TODO: thisX is not the right dimensions, it contains all the images from the "all" folder.
-#might need to make a new folder with the toy dataset. Or put the looping through the labels before reading the images in the function. 
-'''
-Do I now need to save the images? or can I just proceed to feeding them to 
-the transforming into a vector( for the k nearest neighbours and for the 
-random forests)?
-'''
 
 #%%
 '''
 For the neural nets you don't need to extract the images into a numpy array 
-(to extract the features).
+(to extract the features) so the function would be as follows:
 '''
- 
+import os
+#this step is for KNN or SVM models.
+#reads, resizes and extracts images into a numpy array and get the corresponding labels:
+def resize_extract_images_NN(path, label_df, desired_size):
+    all_images_as_array=[]
+    label=[]    
+    for filename in os.listdir(path):
+        for index, row in label_df.iterrows():
+            if filename==row["0"]:
+                # 1-Feed the label vector:
+                if row["infect_status"]==1:
+                    label.append(1)
+                else:
+                    label.append(0)
+                # 2- read the image:
+                im = Image.open(path+filename)
+                old_size = im.size  # old_size[0] is in (width, height) format
+                ratio = float(desired_size)/max(old_size)
+                new_size = tuple([int(x*ratio) for x in old_size])
+# use resize() method to resize the input image
+                resized_im = im.resize(new_size, Image.ANTIALIAS)
+# create a new image and paste the resized on it
+                new_im = Image.new("RGB", (desired_size, desired_size))
+                new_im.paste(resized_im, ((desired_size-new_size[0])//2,
+                    (desired_size-new_size[1])//2))       
+####here need something to save the new images.... maybe make a new directory?
+        
+         
+
+    return np.array(all_images_as_array), np.array(label)
+
+
+
+X_train,y_train = resize_extract_images(im_path,toy_training,desired_size = 224)
+print('X_train set : ',X_train)
+print('y_train set : ',y_train)
+print("The shape of the X_train set is: {} \n and the shape of the y_train is: {}.".format(X_train.shape, y_train.shape))
+
