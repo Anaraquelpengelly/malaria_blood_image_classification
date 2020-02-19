@@ -189,10 +189,35 @@ def resize_extract_images_NN(path, label_df, desired_size):
                 new_im.paste(resized_im, ((desired_size-new_size[0])//2,
                     (desired_size-new_size[1])//2))       
 ####here need something to save the new images.... maybe make a new directory?
-        
+                '''
+                Form CDM:
+                    
+ Note that the output of the extract_images() function is a 4D array. 
+ The reason is that the convolutational layer in Pytorch takes 4D arrays of shape  
+ 𝑁×𝐶×𝑋×𝑌  as input.
+ ===>>>> 
+ need to check what format the convolutional layer in Pytorch for resenet is!
+     
+
+ def extract_images(f_name):
+    """ Extract the images into a 4D uint8 numpy array [index, rows, cols, 1]. """
+    print('Extracting', f_name)
+    with gzip.open(f_name, 'rb') as f:
+        # Read file header
+        buffer = f.read(16)
+        magic, num_images, rows, cols = struct.unpack(">IIII", buffer)
+        if magic != 2051:
+            raise ValueError('Invalid magic number {0} in MNIST image file {1}.'.format(magic, f_name))
+
+        # Read data
+        buffer = f.read(rows * cols * num_images)
+        data = np.frombuffer(buffer, dtype=np.uint8)
+        data = data.reshape(num_images, 1, rows, cols)
+        return data
+        '''
          
 
-    return np.array(all_images_as_array), np.array(label)
+    
 
 
 
