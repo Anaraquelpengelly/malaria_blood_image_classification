@@ -60,6 +60,7 @@ new_size = tuple([int(x*ratio) for x in old_size])
 
 resized_im = im.resize(new_size, Image.ANTIALIAS)
 # create a new image and paste the resized on it
+#antialias=>what it it?
 
 
 
@@ -195,6 +196,11 @@ def resize_extract_images_NN(path, label_df, desired_size):
  Note that the output of the extract_images() function is a 4D array. 
  The reason is that the convolutational layer in Pytorch takes 4D arrays of shape  
  𝑁×𝐶×𝑋×𝑌  as input.
+ 
+ OJO: you need to scale your images as well! you need to figure out the average 
+ of each channel (R, G, B) overall images and  then do scaling with the 
+ "transforms.normalize" parameter of the transform function in pytorch. 
+ Look for examples.
  ===>>>> 
  need to check what format the convolutional layer in Pytorch for resenet is!
      
@@ -214,6 +220,7 @@ def resize_extract_images_NN(path, label_df, desired_size):
         data = np.frombuffer(buffer, dtype=np.uint8)
         data = data.reshape(num_images, 1, rows, cols)
         return data
+
         '''
          
 
@@ -221,8 +228,5 @@ def resize_extract_images_NN(path, label_df, desired_size):
 
 
 
-X_train,y_train = resize_extract_images(im_path,toy_training,desired_size = 224)
-print('X_train set : ',X_train)
-print('y_train set : ',y_train)
-print("The shape of the X_train set is: {} \n and the shape of the y_train is: {}.".format(X_train.shape, y_train.shape))
+
 
