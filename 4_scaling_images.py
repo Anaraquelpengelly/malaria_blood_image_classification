@@ -107,24 +107,25 @@ import os
 def resize_extract_images(path, label_df, desired_size):
     all_images_as_array=[]
     label=[]
+    #TODO:here create if statement!id filename in df...might be better below..
     for filename in os.listdir(path):
         im = Image.open(path+filename)
         old_size = im.size  # old_size[0] is in (width, height) format
         ratio = float(desired_size)/max(old_size)
         new_size = tuple([int(x*ratio) for x in old_size])
-# use thumbnail() or resize() method to resize the input image
+# use resize() method to resize the input image
         resized_im = im.resize(new_size, Image.ANTIALIAS)
 # create a new image and paste the resized on it
         new_im = Image.new("RGB", (desired_size, desired_size))
         new_im.paste(resized_im, ((desired_size-new_size[0])//2,
                     (desired_size-new_size[1])//2))       
-#create np_array from new image:        
+#create np_array from new image:  
+        #TODO: here there is a problem with the dimensions of the vectorised image find it! 
         np_array = np.asarray(new_im)
         l,b,c = np_array.shape
         np_array = np_array.reshape(l*b*c,)
         all_images_as_array.append(np_array)
         for index, row in label_df.iterrows():
-            #TODO: Here I need to check what the toy looks like:
             if filename==row["0"]:
                 if row["infect_status"]==1:
                     label.append(1)
