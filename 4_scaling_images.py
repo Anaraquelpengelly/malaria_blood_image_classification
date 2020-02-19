@@ -202,7 +202,21 @@ def resize_extract_images_NN(path, label_df, desired_size):
  "transforms.normalize" parameter of the transform function in pytorch. 
  Look for examples.
  ===>>>> 
- need to check what format the convolutional layer in Pytorch for resenet is!
+ 
+ Need to do: 
+     
+from torchvision import transforms
+transform = transforms.Compose([            #[1]
+transforms.Resize(256),                    #[2]
+transforms.CenterCrop(224),                #[3]
+transforms.ToTensor(),                     #[4]
+transforms.Normalize(                      #[5] scaling!
+mean=[0.485, 0.456, 0.406],                #[6]
+std=[0.229, 0.224, 0.225]                  #[7]
+ )])
+
+
+need to check what format the convolutional layer in Pytorch for resenet is!
      
 
  def extract_images(f_name):
