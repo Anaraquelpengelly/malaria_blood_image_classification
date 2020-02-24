@@ -29,9 +29,11 @@ im_path="/Users/anaraquelpengelly/Desktop/MSC_health_data_science/term_2/machine
 #First extract the image
 import numpy as np
 import matplotlib.pyplot as plt
-
 import os
+from PIL import Image, ImageOps
+
 filename = os.path.join(im_path,'C101P62ThinF_IMG_20150918_151006_cell_61.png')
+
 '''
 will not use this but is useful to know:
 from skimage import io
@@ -41,14 +43,17 @@ img = io.imread(filename)
 #different strategy: 
 #desired size: 224 × 224
 
-from PIL import Image, ImageOps
+
 
 desired_size = 224
-import os
 filename = os.path.join(im_path,'C101P62ThinF_IMG_20150918_151006_cell_61.png')
 
 im = Image.open(filename)
 old_size = im.size  # old_size[0] is in (width, height) format
+
+#%%
+img.shape
+#%%
 
 ratio = float(desired_size)/max(old_size)
 new_size = tuple([int(x*ratio) for x in old_size])
@@ -112,6 +117,8 @@ print(a_r.shape)
 import pandas as pd
 toy_training=pd.read_csv((path+"training_toy.csv"))
 toy_training.head()
+toy_test=pd.read_csv(path+"test_toy.csv")
+toy_test.head()
 
 #%%
 #This now works:
@@ -154,90 +161,21 @@ def resize_extract_images(path, label_df, desired_size):
 
 
 X_train,y_train = resize_extract_images(im_path,toy_training,desired_size = 224)
+X_test, y_test = resize_extract_images(im_path, toy_test, desired_size = 224)
+
 print('X_train set : ',X_train)
 print('y_train set : ',y_train)
 print("The shape of the X_train set is: {} \n and the shape of the y_train is: {}.".format(X_train.shape, y_train.shape))
 
 
 #%%
-'''
-For the neural nets you don't need to extract the images into a numpy array 
-(to extract the features) so the function would be as follows:
-'''
-import os
-#this step is for KNN or SVM models.
-#reads, resizes and extracts images into a numpy array and get the corresponding labels:
-def resize_extract_images_NN(path, label_df, desired_size):
-    all_images_as_array=[]
-    label=[]    
-    for filename in os.listdir(path):
-        for index, row in label_df.iterrows():
-            if filename==row["0"]:
-                # 1-Feed the label vector:
-                if row["infect_status"]==1:
-                    label.append(1)
-                else:
-                    label.append(0)
-                # 2- read the image:
-                im = Image.open(path+filename)
-                old_size = im.size  # old_size[0] is in (width, height) format
-                ratio = float(desired_size)/max(old_size)
-                new_size = tuple([int(x*ratio) for x in old_size])
-# use resize() method to resize the input image
-                resized_im = im.resize(new_size, Image.ANTIALIAS)
-# create a new image and paste the resized on it
-                new_im = Image.new("RGB", (desired_size, desired_size))
-                new_im.paste(resized_im, ((desired_size-new_size[0])//2,
-                    (desired_size-new_size[1])//2))       
-####here need something to save the new images.... maybe make a new directory?
-                '''
-                Form CDM:
-                    
- Note that the output of the extract_images() function is a 4D array. 
- The reason is that the convolutational layer in Pytorch takes 4D arrays of shape  
- 𝑁×𝐶×𝑋×𝑌  as input.
- 
- OJO: you need to scale your images as well! you need to figure out the average 
- of each channel (R, G, B) overall images and  then do scaling with the 
- "transforms.normalize" parameter of the transform function in pytorch. 
- Look for examples.
- multiply by: value-mean/sd
- ===>>>> 
- 
- Need to do: 
-     
-from torchvision import transforms
-transform = transforms.Compose([            #[1]
-transforms.Resize(256),                    #[2]
-transforms.CenterCrop(224),                #[3]
-transforms.ToTensor(),                     #[4]
-transforms.Normalize(                      #[5] scaling!
-mean=[0.485, 0.456, 0.406],                #[6]
-std=[0.229, 0.224, 0.225]                  #[7]
- )])
 
+print('X_train set : ',X_train)
+print('y_train set : ',y_train)
+print("The shape of the X_train set is: {} \n and the shape of the y_train is: {}.".format(X_train.shape, y_train.shape))
 
-need to check what format the convolutional layer in Pytorch for resenet is!
-     
-
- def extract_images(f_name):
-    """ Extract the images into a 4D uint8 numpy array [index, rows, cols, 1]. """
-    print('Extracting', f_name)
-    with gzip.open(f_name, 'rb') as f:
-        # Read file header
-        buffer = f.read(16)
-        magic, num_images, rows, cols = struct.unpack(">IIII", buffer)
-        if magic != 2051:
-            raise ValueError('Invalid magic number {0} in MNIST image file {1}.'.format(magic, f_name))
-
-        # Read data
-        buffer = f.read(rows * cols * num_images)
-        data = np.frombuffer(buffer, dtype=np.uint8)
-        data = data.reshape(num_images, 1, rows, cols)
-        return data
-gpy:  gaussian process latent varaible model.
-        '''
-         
+  #%%
+img       
 
     
 
