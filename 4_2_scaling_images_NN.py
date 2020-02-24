@@ -22,6 +22,7 @@ import os
 import pandas as pd
 from PIL import Image, ImageOps
 from torchvision import transforms
+import torch
 
 
 #%%
@@ -119,9 +120,8 @@ For the neural nets you don't need to extract the images into a numpy array
 #this step is for KNN or SVM models.
 #reads, resizes and extracts images into a numpy array and get the corresponding labels:
 def resize_extract_images_NN(path, label_df, desired_size):
-    means=[]
-    sds=[]
-    all_images_as_array=[]
+    m=[]
+    s=[]
     label=[]
     em = np.empty([0, desired_size, desired_size, 3])    
     for filename in os.listdir(path):
@@ -157,29 +157,22 @@ def resize_extract_images_NN(path, label_df, desired_size):
                 #this should be done outside the for loop
     #mean of each each CHANNEL of your image            
     
-    mean.append(m1)
-    mean.append(m2)
-    mean.append(m3)
-   #sd of each CHANNEL of your images
-    sd.append(s1)
-    sd.append(s2)
-    sd.append(s3)
-    
-    
-    
+    m.append([em[:, 0].mean(), em[:, 1].mean(), em[:, 2].mean()])
+    #sd of each CHANNEL of your images
+    s.append([em[:, 0].sd(), em[:, 1].sd(), em[:, 2].sd()])
     
     transform = transforms.Compose([            #[1]
                 transforms.ToTensor(),                     #[4]
                 transforms.Normalize(                      #[5] scaling!
-                    mean=[m1, m2, m3],                #[6]
-                    std=[s1, s2, s3]                  #[7]
+                    mean=m,                #[6]
+                    std=s                  #[7]
                     )])
                 
 #np.stack
 #img[:,:,0].shape                
 
 
-                '''
+'''
                 Form CDM:
                     
  Note that the output of the extract_images() function is a 4D array. 

@@ -170,12 +170,12 @@ print("The shape of the X_train set is: {} \n and the shape of the y_train is: {
 
 #%%
 
-print('X_train set : ',X_train)
-print('y_train set : ',y_train)
-print("The shape of the X_train set is: {} \n and the shape of the y_train is: {}.".format(X_train.shape, y_train.shape))
+print('X_test set : ',X_test)
+print('y_test set : ',y_test)
+print("The shape of the X_train set is: {} \n and the shape of the y_train is: {}.".format(X_test.shape, y_test.shape))
 
   #%%
-img       
+    
 
     
 
