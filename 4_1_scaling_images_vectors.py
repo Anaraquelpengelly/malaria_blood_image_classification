@@ -115,43 +115,140 @@ plt.show()
 print(a_r.shape)
 
 #%%
-
+#read dfs
 toy_training=pd.read_csv((path+"training_toy.csv"))
 toy_training.head()
 toy_test=pd.read_csv(path+"test_toy.csv")
 toy_test.head()
 #%%
-'''
-TODO: Here, very important get the max(width) and the max(height)
- of all the images in your data!
 
-'''
-#fun variables: 
+images = [np.asarray(Image.open(im_path+filename)) for filename in os.listdir(im_path)]
+image_sizes = [im.shape for im in images]
+max_size = np.amax(image_sizes)
 
-def get_max_sized_im(path, df):
-     n=[]
-     w=[]
-     h=[]
-     for filename in os.listdir(path):
-        for index, row in df.iterrows():
-            if filename ==row["0"]:
-                im=Image.open(path+filename)
-                w.append(im.size[0])
-                h.append(im.size[1])
-                n.append(filename)
-     return max(w), n[w.index(max(w))], max(h), n[h.index(max(h))] 
+print(max_size)
+#max_size=394
+#%%Show the image with the highest dim:
+
+image_sizes_arr=np.asarray(image_sizes)
+min_size=np.amin(image_sizes_arr, axis=0)
+min_size=min_size[0]
+#gives tuple with first element being the list if indexes
+max_image_idx=np.where(image_sizes_arr == max_size)[0][0]
+min_image_idx=np.where(image_sizes_arr == min_size)[0][0]
+plt.imshow(images[min_image_idx])
+plt.show()
+
+plt.imshow(images[max_image_idx])
+plt.show()
+#%%
+#get filename:
+image_names = [filename for filename in os.listdir(im_path)]
+max_name=image_names[max_image_idx]
+min_name=image_names[min_image_idx]
+#open image with PIL:
+max_image=Image.open(im_path+max_name)
+
+min_image=Image.open(im_path+min_name)
+
+##1-resize:
+#%%
+def resize_image(desired_size, image):
+    old_size=image.size
+    ratio=float(desired_size)/max(old_size)
+    new_size=tuple([int(x*ratio) for x in old_size])
+    resized_im =image.resize(new_size, Image.ANTIALIAS)
+    new_im = Image.new("RGB", (desired_size, desired_size))
+    new_im.paste(resized_im, ((desired_size-new_size[0])//2,
+                    (desired_size-new_size[1])//2))
+    return new_im
 #%%
 
-toy=pd.read_csv(path+"toy_df.csv")
-m_w, im0, m_h, im1=get_max_sized_im(im_path, toy)     
+a=resize_image(224, min_image)
+a.show()
+
+b=resize_image(224, max_image)
+b.show()
+
+
+#%%
+##2-Padd and crop:
+def pad_crop(desired_size, max_size, image):
+    old_size = image.size
+    max_size=max_size+14
+    delta_w=max_size - old_size[0]
+    delta_h=max_size - old_size[1]
+    padding= (delta_w//2, delta_h//2, delta_w-(delta_w//2), delta_h-(delta_h//2))
+    pad_im=ImageOps.expand(image, padding)
+    
+    left = (max_size-desired_size)/2
+    top =  (max_size-desired_size)/2
+    right = max_size-(max_size-desired_size)/2
+    bottom = max_size-(max_size-desired_size)/2
+    cropped_im = pad_im.crop((left, top, right, bottom))
+    return cropped_im
  
-#m_w is 202, and m_h=238
+#%%
+c=pad_crop(224, 394, min_image)
+c.show()
+
+d=pad_crop(224, 394, max_image) 
+d.show()  
+
 
 #%%
-#here I forgot to use all the labels for the max! 
-all_im=pd.read_csv(path+"shuffled_labels.csv")
-m_w, im0, m_h, im1=get_max_sized_im(im_path, all_im)
-print(m_w, im0, m_h, im1)
+max_image.show()
+old_size = max_image.size
+
+max_size=394+15
+
+
+delta_w=max_size - old_size[0]
+delta_h=max_size - old_size[1]
+padding= (delta_w//2, delta_h//2, delta_w-(delta_w//2), delta_h-(delta_h//2))
+pad_im=ImageOps.expand(max_image, padding)
+pad_im.show() 
+
+left = (max_size-desired_size)/2
+top =  (max_size-desired_size)/2
+right = max_size-(max_size-desired_size)/2
+bottom = max_size-(max_size-desired_size)/2
+cropped_im = pad_im.crop((left, top, right, bottom))
+
+cropped_im.show()
+#%%
+##3-compare:
+fig, axes=plt.subplots(2, 3)
+ax=axes.flatten()
+ax[0].imshow(min_image)
+ax[0].set_title("Original\n smallest image. \n Size:{}.".format(min_image.size),
+                fontsize=12)
+ax[1].imshow(a)
+ax[1].set_title("Resized\n smallest image. \n Size:{}.".format(a.size), fontsize=12)
+ax[2].imshow(c)
+ax[2].set_title("Padded and cropped\n smallest image. \n Size:{}.".format(c.size), fontsize=12)
+ax[3].imshow(max_image)
+ax[3].set_title("Original\n largest image. \n Size:{}.".format(max_image.size), fontsize=12)
+ax[4].imshow(b)
+ax[4].set_title("Resized\n largest image. \n Size:{}.".format(b.size), fontsize=12)
+ax[5].imshow(d)
+ax[5].set_title("Padded and cropped\n largest image. \n Size:{}.".format(d.size), fontsize=12)
+
+
+plt.tight_layout()
+plt.savefig((path+"figures/image_resizing_options_2.png"), dpi=300)
+plt.show()
+
+
+
+
+#%%
+#now get how many are >224
+result = np.where(image_sizes_arr > 224)
+indexes =result[0]
+n=len(indexes)
+#answer: 88!
+print(n)
 
 #%%
 #need to check this! 
@@ -292,20 +389,21 @@ def pad_resize_extract_images(path, label_df, max_size, desired_size):
 
 #%%
     
-X_train_p, y_train_p=pad_resize_extract_images(im_path, toy_training, max_size=238, desired_size=224)
-X_test_p, y_test_p=pad_resize_extract_images(im_path, toy_training, max_size=238, desired_size=224)
+X_train_p, y_train_p=pad_resize_extract_images(im_path, toy_training, max_size=394, desired_size=224)
+X_test_p, y_test_p=pad_resize_extract_images(im_path, toy_test, max_size=394, desired_size=224)
 
 print("The shape Xtrain_p :{}, y_train_p :{}, shape of X_test_p :{}, y_test_p:{}".format(
     X_train_p.shape, y_train_p.shape, X_test_p.shape, y_test_p.shape ))
 
 
 #%%
-##this was a test the following works, now integrate into the function:
+##this was a test the following works for padding, now integrate into the function:
+filename = os.path.join(im_path,'C101P62ThinF_IMG_20150918_151006_cell_61.png')
     
 im_test=Image.open(filename)
-
+im_test.show()
 old_size = im_test.size
-max_size=258
+max_size=394+15
 wanted_size=224
 delta_w=max_size - old_size[0]
 delta_h=max_size - old_size[1]
@@ -320,3 +418,5 @@ bottom = right
 cropped_example = new_im.crop((left, top, right, bottom))
 
 cropped_example.show()
+#%%
+#Now ready to use scikit learn!  
