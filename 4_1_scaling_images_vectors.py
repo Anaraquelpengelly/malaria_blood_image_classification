@@ -310,37 +310,8 @@ print('y_test set : ',y_test)
 print("The shape of the X_test set is: {} \n and the shape of the y_test is: {}.".format(X_test.shape, y_test.shape))
 
 #%%
-#make new function with the padding: 
-def pad_extract_images(path, label_df, desired_size):
-    all_images_as_array=[]
-    label=[]    
-    for filename in os.listdir(path):
-        for index, row in label_df.iterrows():
-            if filename==row["0"]:
-                # 1-Feed the label vector:
-                if row["infect_status"]==1:
-                    label.append(1)
-                else:
-                    label.append(0)
-                # 2- read the image:
-                im = Image.open(path+filename)
-                old_size = im.size  # old_size[0] is in (width, height) format
-                delta_w=desired_size - old_size[0]
-                delta_h=desired_size - old_size[1]
-                padding= (delta_w//2, delta_h//2, delta_w-(delta_w//2), 
-                          delta_h-(delta_h//2))
-                new_im=ImageOps.expand(im, padding)
-                #new_im.show()   
-        #create np_array from new image:  
-        #dimensions are fine! 
-                np_array = np.asarray(new_im)
-                l,b,c = np_array.shape
-                np_array = np_array.reshape(l*b*c,)
-                all_images_as_array.append(np_array)
-        
-         
 
-    return np.array(all_images_as_array), np.array(label)
+
 #%%
 X_train_p, y_train_p=pad_extract_images(im_path, toy_training, 224)
 X_test_p, y_test_p=pad_extract_images(im_path, toy_test, 224)
@@ -350,7 +321,7 @@ print("The shape Xtrain_p :{}, y_train_p :{}, shape of X_test_p :{}, y_test_p:{}
 
 #%%Here now new function to first resize to the largest sized image and then crop
 #make new function with the padding: 
-def pad_resize_extract_images(path, label_df, max_size, desired_size):
+def pad_crop_extract_images(path, label_df, max_size, desired_size):
     max_size=max_size+15
     all_images_as_array=[]
     label=[]    

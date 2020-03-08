@@ -35,7 +35,7 @@ from torchvision import datasets, transforms, models
 filename1 = os.path.join(im_path,'C101P62ThinF_IMG_20150918_151006_cell_61.png')
 filename2 = os.path.join(im_path, "C99P60ThinF_IMG_20150918_142334_cell_9.png")
 #%%
-def image_open_arr(filename):
+def image_open(filename):
     im=Image.open(filename)
     im_arr=np.asarray(im)
     return im_arr
@@ -120,61 +120,41 @@ toy_training=pd.read_csv((path+"training_toy.csv"))
 toy_training.head()
 toy_test=pd.read_csv(path+"test_toy.csv")
 toy_test.head()
-all_data=pd.read_csv(path+"shuffled_labels.csv")
-#%% 
-import sys
-sys.path.append("/Users/anaraquelpengelly/Desktop/MSC_health_data_science/term_2/machine_learning/project_malaria/Malaria_blood_image_classification/scripts/")
-from image_anal import  sklearn_ana as sk
-from image_anal import neural_net_pytorch as nn
 
-#%%
-
-#%%
-import timeit
-
-
-starttime = timeit.default_timer()
-print(f"The start time is :{starttime}")
-m, s=nn.get_channel_mean_sd(toy_training, "0", 224, 394, im_path)
-print(f"The time difference is :{timeit.default_timer() - starttime}.\n Means are {m}, SDs are{s}")
-print(m, s)
-#%% Now do it from the whole dataset but paralellising:
-#takes too long ! do it on chuncks of the df! and then take average of that! 
-
-starttime = timeit.default_timer()
-print(f"The start time is :{starttime}")
-m_a, s_a=nn.get_channel_mean_sd(all_data, "0", 224, 394, im_path)
-print(f"The time difference is :{timeit.default_timer() - starttime}.\n Means are {m}, SDs are{s}")
-print(m, s)
-
-
-
-#%%
+#%% The for loop below now is functionnal!
+#tests for the for loop:
 em = np.empty([0, 3, 224, 224])
 m=[]
 s=[]
 
-for index, row in all_data.iterrows():
+for index, row in toy_training.iterrows():
     
     filename=im_path+row["0"]
     im=Image.open(filename)
-    #HERE USE FUNCTION TO PAD THE IMAGE:
+    #HERE USE FUNCTION TO RESIZE OR PAD THE IMAGE:
     old_size = im.size  # old_size[0] is in (width, height) format
-    new_im=sk.pad_crop_image(224, 394, im)
+    ratio = float(224)/max(old_size)
+    new_size = tuple([int(x*ratio) for x in old_size])
+    # use resize() method to resize the input image
+    resized_im = im.resize(new_size, Image.ANTIALIAS)
+    # create a new image and paste the resized on it
+    new_im = Image.new("RGB", (224, 224))
+    new_im.paste(resized_im, ((224-new_size[0])//2,
+                    (224-new_size[1])//2))
     #save image as np array:
     new_im=np.asarray(new_im)
     im_trans=new_im.transpose((2, 0, 1))#might not need this if processing downstream with pytorch.
     im_4D=im_trans[np.newaxis, :, :, :]
     em=np.append(em, im_4D, 0)
 #now add the means and sds of each of the channels to the m and s variable: 
-m.append(em[:, 0].mean()/255)
-m.append(em[:, 1].mean()/255)
-m.append(em[:, 2].mean()/255)
-s.append(em[:, 0].std()/255)
-s.append(em[:, 1].std()/255)
-s.append(em[:, 2].std()/255)
+m.append(em[:, 0].mean())
+m.append(em[:, 1].mean())
+m.append(em[:, 2].mean())
+s.append(em[:, 0].std())
+s.append(em[:, 1].std())
+s.append(em[:, 2].std())
     
-print(em.shape, f"mean is m={m} and std={s}")  
+print(em.shape, "mean is m={} and std={}".format(m, s))  
     
 #%%
 #Now we can do the pytorch neural network:
@@ -233,12 +213,11 @@ def resize_extract_images_NN(path, label_df, desired_size):
                 
                 
                 #this should be done outside the for loop
-    #mean of each each CHANNEL of your image   
-                #divide by 255 to make everything between 0 and 1
+    #mean of each each CHANNEL of your image            
     
     m.append([em[:, 0].mean()/255, em[:, 1].mean()/255, em[:, 2].mean()/255])
     #sd of each CHANNEL of your images
-    s.append([em[:, 0].sd()/255, em[:, 1].sd()/255, em[:, 2].sd()/255])
+    s.append([em[:, 0].sd(), em[:, 1].sd(), em[:, 2].sd()])
     
     transform = transforms.Compose([            #[1]
                 transforms.ToTensor(),                     #[4]
