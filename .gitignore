@@ -1,4 +1,4 @@
-# ignore all checkpoint files
+#:ignore all checkpoint files
 *.ipynb_checkpoints
 #ignore all .DS_Store files
 

@@ -72,16 +72,23 @@ def resize_extract_images(path, label_df, desired_size):
                 # 2- read the image:
                 im = Image.open(path+filename)
                 #here call resize function:
-                new_im = resize_image(desired_size, im)       
+                new_im = resize_image(desired_size, im)
+                
+                
 #create np_array from new image:  
         #dimensions are fine! 
-                np_array = np.asarray(new_im)
-                l,b,c = np_array.shape
-                np_array = np_array.reshape(l*b*c,)
-                all_images_as_array.append(np_array)
-        
-         
-
+                im_array = np.asarray(new_im)
+                #normalise images:
+                all_images_as_array.append(im_array)
+                l,b,c = im_array.shape
+#THIS NEEDS TO BE TESTED ON A SMALLARRAY OF IMAGES                
+    # X_4d =all_images_as_array
+    # X4D_centered= X_4d - X_4d.mean(axis=0, keepdims=True)
+    # X4D_sd=X_4d.std(axis=0, keepdims=True)
+    # X4D_divided =np.divide(X4D_centered, X4D_sd , out=np.zeros_like(X4D_centered), where=X4D_sd!=0)
+    #TODO ! need to put things in here!! check if this works! 
+                
+    #flatterned_array=all_images_as_array.reshape(len(label),l*b*c)
     return np.array(all_images_as_array), np.array(label)
 # =============================================================================
 #  Function to extract and pad+crop images and labels 
@@ -109,3 +116,37 @@ def pad_crop_extract_images(path, label_df, max_size, desired_size):
                 all_images_as_array.append(np_array)
 
     return np.array(all_images_as_array), np.array(label)
+
+# =============================================================================
+# Function to pad, crop, and normalise images 
+# =============================================================================
+def norm_pad_crop_extract_images(path, label_df, max_size=394, desired_size=224):
+    max_size=max_size+15
+    all_images_as_array=[]
+    label=[]    
+    for filename in os.listdir(path):
+        for index, row in label_df.iterrows():
+            if filename==row["0"]:
+                # 1-Feed the label vector:
+                if row["infect_status"]==1:
+                    label.append(1)
+                else:
+                    label.append(0)
+                # 2- read the image:
+                im = Image.open(path+filename)
+                cropped_im = pad_crop_image(desired_size, max_size, im)
+        #create np_array from new image:  
+        #dimensions are fine! 
+                np_array = np.asarray(cropped_im)
+                l,b,c = np_array.shape
+                
+                all_images_as_array.append(np_array)
+    #normalise the images:            
+    X4D=np.array(all_images_as_array)            
+    X4D_centered= X4D - X4D.mean(axis=0, keepdims=True)
+    X4D_sd=X4D.std(axis=0, keepdims=True)
+    X4D_divided =np.divide(X4D_centered, X4D_sd , out=np.zeros_like(X4D_centered), where=X4D_sd!=0)            
+    
+    X4D_norm = X4D_divided.reshape(X4D_divided.shape[0],l*b*c)
+
+    return X4D_norm, np.array(label)

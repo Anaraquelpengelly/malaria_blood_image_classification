@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Tue Mar  3 18:34:31 2020
+Created on Tue Mar 10 16:21:24 2020
 
 @author: anaraquelpengelly
 """
 
 
-import sys
-print(sys.path)
