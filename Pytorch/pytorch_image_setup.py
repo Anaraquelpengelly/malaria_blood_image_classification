@@ -79,7 +79,7 @@ for filename in os.listdir(path+'padded_cell_images/Parasitized'):
                 if filename==row["0"]:
                     copy2((path+f'padded_cell_images/Parasitized/{filename}'), train_path_para) 
                     
-#%% attempt with multiprocessing:                    
+#%% attempt with multiprocessing, works but need to make a funtion!!!:                    
  
 def copy_image( df, source_path=path+'padded_cell_images/Uninfected', dest_path=train_path_unin):
     for filename in os.listdir(source_path):

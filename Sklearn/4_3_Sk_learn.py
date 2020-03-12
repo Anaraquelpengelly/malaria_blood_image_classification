@@ -17,6 +17,7 @@ from sklearn import neighbors, ensemble, svm, metrics
 from sklearn.model_selection import GridSearchCV, train_test_split
 from sklearn.decomposition import PCA
 import logging
+import joblib
 #%%
 import sys
 sys.path.append(r"/Users/anaraquelpengelly/Desktop/MSC_health_data_science/term_2/machine_learning/project_malaria/Malaria_blood_image_classification/scripts/image_anal")
@@ -69,23 +70,39 @@ X_x, y_y=norm_pad_crop_extract_images(im_path, toy_test)
 path="/Users/anaraquelpengelly/Desktop/MSC_health_data_science/term_2/machine_learning/project_malaria/Malaria_blood_image_classification/"
 im_path="/Users/anaraquelpengelly/Desktop/MSC_health_data_science/term_2/machine_learning/project_malaria/Malaria_blood_image_classification/all_images/"
 
+data=pd.read_csv(path+"labels.csv")
+
 data=pd.read_csv(path+"toy_df.csv")
 import time as time
 start_time=time.time()
 X,y=sk.norm_pad_crop_extract_images(im_path, data, 394, 224)
 
-print(f"It took {time.time()-start_time}s")
+print(f"It took {time.time()-start_time}s to open 200 images")
 #It took 617.9523899555206s for 200 images
-print(f"It took {(617.9523899555206)/60} min")
 #so 10 min!!!
 X_train, X_test,y_train, y_test=train_test_split(X, y, test_size=0.2, random_state=0, shuffle=True)
 #%%
 #1.1 Dimensionality reduction with PCA
-n_components = 150
+##get how many components explain 50% of the variance: 
+pca_test = PCA(0.50).fit(X)
+print(pca_test.n_components_)
+#6!!!
+##get plot to determine how many compnents explain how much of the variance:
+
+pca_test2 = PCA().fit(X)
+plt.plot(np.cumsum(pca_test2.explained_variance_ratio_))
+plt.xlabel('number of components')
+plt.ylabel('cumulative explained variance')
+plt.savefig((path+"figures/PCA_scree_plot.png"), dpi=300)
+
+
+
+
+#Do PCA and transform your data
+n_components = 160
 
 t0 = time.time()
-pca = PCA(n_components=n_components, svd_solver='randomized',
-          whiten=True).fit(X_train)
+pca = PCA(n_components=n_components, svd_solver='randomized',).fit(X_train)
 print(f"done in {(time.time() - t0)}s" )
 
 
@@ -109,9 +126,26 @@ SVM_model=svm.SVC(kernel="rbf")
 SVM_model.fit(X_train, y_train)
 y_pred_SVM=SVM_model.predict(X_test)
 
+#SVM on PCA transformed:
+SVM_PCA=svm.SVC(kernel="rbf")
+SVM_PCA.fit(X_train_pca, y_train)
+y_pred_PCA=SVM_PCA.predict(X_test_pca)
 
 
-
+##SVM with grid search
+t0=time.time()
+param_grid={"C":[0.5, 5, 100, 1000, 5000],"gamma":[0.01, 0.1, 0.3, 0.5]}
+grid =GridSearchCV(svm.SVC(kernel="rbf", class_weight="balanced"), param_grid, n_jobs=-1)
+grid=grid.fit(X_train, y_train)
+model =grid.best_estimator_
+y_pred_SVM_grid=model.predict(X_test)
+print(f"time it took ={time.time()-t0}")
+#time it took =275.04812693595886
+print(grid.best_params_)
+#{'C': 1000, 'gamma': 0.01}
+grid_PCA=grid.fit(X_train_pca, y_train)
+model_PCA=grid_PCA.best_estimator_
+y_pred_SVM_grid_PCA=model_PCA.predict(X_test_pca)
 
 # =============================================================================
 # Grid search:
@@ -131,17 +165,6 @@ y_pred_SVM=SVM_model.predict(X_test)
 # model_PCA=grid_PCA.best_estimator_
 # y_pred_SVM_grid_PCA=model_PCA.predict(X_test_pca)
 
-
-##svm with polynomial kernel
-#normal data
-poly_model=svm.SVC(kernel="poly")
-poly_model.fit(X_train, y_train)
-y_pred_poly=poly_model.predict(X_test)
-
-#PCA
-poly_model.fit(X_train_pca, y_train)
-y_pred_poly_pca=poly_model.predict(X_test_pca)
-
 #randomised search from sklearn ! you can make it run through all Cs and all gammas! 
 #C belongs to the 
 
@@ -150,31 +173,32 @@ y_pred_poly_pca=poly_model.predict(X_test_pca)
 #3-Evaluate models:
 ##confusion matrix: https://scikit-learn.org/stable/auto_examples/model_selection/plot_confusion_matrix.html#sphx-glr-auto-examples-model-selection-plot-confusion-matrix-py
 ## example: 
+
 conf_mat_KNN=metrics.confusion_matrix(y_test, y_pred_KNN)
 conf_mat_SVM_gauss=metrics.confusion_matrix(y_test, y_pred_SVM)
-# conf_mat_SVM_grid=metrics.confusion_matrix(y_test, y_pred_SVM_grid) 
-# conf_mat_SVM_grid_PCA=metrics.confusion_matrix(y_test, y_pred_SVM_grid_PCA)
-conf_mat_poly=metrics.confusion_matrix(y_test, y_pred_poly)
-#conf_mat_poly_G=metrics.confusion_matrix(y_test, y_pred_poly_grid)
-conf_mat_poly_pca=metrics.confusion_matrix(y_test, y_pred_poly_pca)
+conf_mat_SVM_PCA=metrics.confusion_matrix(y_test, y_pred_PCA)
+conf_mat_SVM_grid=metrics.confusion_matrix(y_test, y_pred_SVM_grid) 
+conf_mat_SVM_grid_PCA=metrics.confusion_matrix(y_test, y_pred_SVM_grid_PCA)
+
 #%%
 #make function!
 fig, (ax1,ax2, ax3, ax4)=plt.subplots(1, 4, sharex=True, sharey=True)
-ax1.get_shared_y_axes().join(ax2, ax3)
-g1=sns.heatmap(conf_mat_KNN, ax=ax1, annot=True, linewidths=1,linecolor="grey", fmt="g",cbar=None)
-g1.set(ylim=(2,-0.5),ylabel="True values" , title= " KNN ")
-#g1.set_yticklabels(labels=ax.get_yticklabels(), rotation=0)
-g2=sns.heatmap(conf_mat_SVM_gauss, ax=ax2, annot=True,linewidths=1, linecolor="grey",fmt="g", cbar=None)
-g2.set(ylim=(2,-0.5), title= " SVM gaussian")
-#g2.set_yticklabels(labels=ax.get_yticklabels(), rotation=0)
-g3=sns.heatmap(conf_mat_poly, ax=ax3, annot=True, linewidths=1,linecolor="grey", fmt="g", cbar=None)
-g3.set(ylim=(2,-0.5),  xlabel="Predicted values", title= " SVM poly")
-#g3.set_yticklabels(labels=ax.get_yticklabels(), rotation=0)
-g4=sns.heatmap(conf_mat_poly_pca, ax=ax4, annot=True, linewidths=1,linecolor="grey", fmt="g")
-g4.set(ylim=(2,-0.5), title= " SVM Poly on PCA")
-#g4.set_yticklabels(labels=ax.get_yticklabels(), rotation=0)
+
+g1=sns.heatmap(conf_mat_SVM_gauss, ax=ax1, annot=True, linewidths=1,linecolor="grey", fmt="g",cbar=None)
+g1.set(ylim=(2,-0.5),ylabel="True values" , title= " SVM gauss ")
+g1.set_yticklabels(labels=g1.get_yticklabels(), rotation=0)
+
+g2=sns.heatmap(conf_mat_SVM_PCA, ax=ax2, annot=True,linewidths=1, linecolor="grey",fmt="g", cbar=None)
+g2.set(ylim=(2,-0.5), title= " SVM gauss\nPCA")
+
+g3=sns.heatmap(conf_mat_SVM_grid, ax=ax3, annot=True, linewidths=1,linecolor="grey", fmt="g", cbar=None)
+g3.set(ylim=(2,-0.5),  xlabel="Predicted values", title= "SVM gauss\ngrid")
+
+g4=sns.heatmap(conf_mat_SVM_grid_PCA, ax=ax4, annot=True, linewidths=1,linecolor="grey", fmt="g")
+g4.set(ylim=(2,-0.5), title= "SVM gauss\ngrid PCA")
+
 fig.tight_layout()
-plt.savefig((path+"figures/Conf_matrix_sk_toy_poly_norm.png"), dpi=300)
+plt.savefig((path+"figures/conf_matrix_sk_gauss_norm_test.png"), dpi=300)
 plt.show()
 
 
@@ -185,15 +209,35 @@ plt.show()
 # acc_KNN=metrics.accuracy_score(y_test, y_pred_KNN)
 # acc_SVM=metrics.accuracy_score(y_test, y_pred_SVM)
 # acc_SVM_grid=metrics.accuracy_score(y_test, y_pred_SVM_grid)
-print(f"Accuracy report for KNN 3 neighbours:\n{metrics.classification_report(y_test, y_pred_KNN)}")
-print(f"Accuracy report for SVM  gaussian kernel:\n{metrics.classification_report(y_test, y_pred_SVM)}")
-print(f"Accuracy report for SVM  poly kernel:\n{metrics.classification_report(y_test, y_pred_poly)}")
-print(f"Accuracy report for SVM  poly kernel on PCA transformed images:\n{metrics.classification_report(y_test, y_pred_poly_pca)}")
-#%%
-#Do clustering with the images to see how it looks!
+
+SVM_gauss_report=metrics.classification_report(y_test, y_pred_SVM, output_dict=True)
+SVM_gauss_report=df = pd.DataFrame(SVM_gauss_report).transpose()
+SVM_gauss_report.to_csv(path+"figures/"+"SVM_gauss.csv")
+
+SVM_gauss_PCA=metrics.classification_report(y_test, y_pred_PCA, output_dict=True)
+SVM_gauss_PCA=pd.DataFrame(SVM_gauss_PCA).transpose()
+SVM_gauss_PCA.to_csv(path+"figures/"+"SVM_gauss_PCA.csv")
+
+SVM_gauss_grid=metrics.classification_report(y_test, y_pred_SVM_grid, output_dict=True)
+SVM_gauss_grid=pd.DataFrame(SVM_gauss_grid).transpose()
+SVM_gauss_grid.to_csv(path+"figures/"+"SVM_gauss_grid.csv")
+
+SVM_gauss_grid_PCA=metrics.classification_report(y_test, y_pred_SVM_grid_PCA, output_dict=True)
+SVM_gauss_grid_PCA=pd.DataFrame(SVM_gauss_grid_PCA).transpose()
+SVM_gauss_grid_PCA.to_csv(path+"figures/"+"SVM_gauss_grdi_PCA.csv")
+
+
 
 #%%
-
-
+#save models:
+filename = path+'finalized_model.sav'
+joblib.dump(SVM_model, filename)
+ 
+# some time later...
+ 
+# load the model from disk
+loaded_model = joblib.load(filename)
+result = loaded_model.score(X_test, Y_test)
+print(result)
  
 
