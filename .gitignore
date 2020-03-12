@@ -6,6 +6,8 @@
 
 # but do track lib.a, even though you're ignoring .a files above
 #!lib.a
+# ignore all files in any directory named pytorch
+pytorch/
 
 # ignore all files in any directory named env_sklearn
 env_sklearn/
